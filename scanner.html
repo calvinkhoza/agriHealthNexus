@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AR Nutrition Scanner</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.18.0/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd@2.2.2"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --secondary: #27ae60;
+            --accent: #e67e22;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)),
+                        url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449');
+            background-size: cover;
+            background-position: center;
+            color: var(--light);
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px) saturate(180%);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            padding: 2rem;
+            margin: 2rem auto;
+            max-width: 800px;
+            animation: slideUp 0.8s ease-out;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5rem;
+            margin-bottom: 2rem;
+            color: var(--primary);
+            text-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
+        }
+
+        .scanner-section {
+            position: relative;
+            margin: 2rem 0;
+        }
+
+        #camera {
+            width: 100%;
+            height: 400px;
+            border-radius: 15px;
+            object-fit: cover;
+            border: 3px solid var(--primary);
+            box-shadow: 0 0 20px rgba(46, 204, 113, 0.2);
+            background: #000;
+        }
+
+        .controls {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 1rem 2rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, var(--primary), var(--secondary));
+            color: white;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .vendor-btn {
+            background: linear-gradient(135deg, #e67e22, #d35400);
+            margin-top: 1rem;
+        }
+
+        .results-panel {
+            margin-top: 2rem;
+            padding: 2rem;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            display: none;
+        }
+
+        .chart-container {
+            max-width: 300px;
+            height: 250px;
+            margin: 2rem auto;
+        }
+
+        .nutrition-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .nutrient-card {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .nutrient-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 0.5rem 0;
+        }
+
+        .food-description {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: rgba(255,255,255,0.9);
+            line-height: 1.8;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            padding: 1rem;
+            background: rgba(231, 76, 60, 0.1);
+            border-radius: 8px;
+            margin: 1rem 0;
+            text-align: center;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        @media (max-width: 640px) {
+            .glass-panel {
+                margin: 1rem;
+                padding: 1rem;
+            }
+            
+            #camera {
+                height: 300px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="glass-panel">
+        <h1>AgriScan</h1>
+        
+        <div class="scanner-section">
+            <video id="camera" autoplay playsinline></video>
+            <div class="controls">
+                <button id="captureBtn">Capture</button>
+                <button id="searchBtn" disabled>🔍 Analyze</button>
+            </div>
+            <div id="objectName"></div>
+            <canvas id="canvas" style="display:none;"></canvas>
+        </div>
+
+        <div id="results" class="results-panel">
+            <div class="food-description" id="foodDescription"></div>
+            <div class="chart-container">
+                <canvas id="nutritionChart"></canvas>
+            </div>
+            <div class="nutrition-grid" id="nutritionData"></div>
+            <div id="vendorMap" style="width:100%;height:320px;margin:2rem 0;border-radius:15px;display:none;"></div>
+            <button class="vendor-btn" onclick="window.location.href='customer.html'">📍 Find Local Vendors</button>
+        </div>
+        
+        <div id="error" class="error-message"></div>
+    </div>
+
+    <script>
+        // DOM Elements
+        const cameraElement = document.getElementById('camera');
+        const captureBtn = document.getElementById('captureBtn');
+        const searchBtn = document.getElementById('searchBtn');
+        const objectNameElement = document.getElementById('objectName');
+        const nutritionDataElement = document.getElementById('nutritionData');
+        const resultsElement = document.getElementById('results');
+        const errorElement = document.getElementById('error');
+        const canvasElement = document.getElementById('canvas');
+        const foodDescriptionElement = document.getElementById('foodDescription');
+        let nutritionChart = null;
+
+        // Agricultural Configuration
+        const foodList = [
+            "apple", "banana", "orange", "pear", "grapes", "avocado",
+            "potato", "onion", "cabbage", "tomato", "cucumber", "lettuce",
+            "carrot", "mango", "watermelon", "pineapple", "broccoli",
+            "spinach", "sweet potato", "beetroot"
+        ];
+
+        const foodDatabase = {
+            apple: {calories: 95, carbs: 25, protein: 0.5, fat: 0.3, description: "Apples are rich in fiber and vitamin C.", origin: "Orchards"},
+            banana: {calories: 105, carbs: 27, protein: 1.3, fat: 0.3, description: "Bananas are high in potassium.", origin: "Tropical farms"},
+            orange: {calories: 62, carbs: 15.4, protein: 1.2, fat: 0.2, description: "Oranges are packed with vitamin C.", origin: "Citrus groves"},
+            pear: {calories: 101, carbs: 27, protein: 0.6, fat: 0.2, description: "Pears are sweet and fiber-rich.", origin: "Fruit orchards"},
+            grapes: {calories: 104, carbs: 27, protein: 1.1, fat: 0.2, description: "Grapes are loaded with antioxidants.", origin: "Vineyards"},
+            avocado: {calories: 160, carbs: 9, protein: 2, fat: 15, description: "Avocados are full of healthy fats.", origin: "Tropical farms"},
+            potato: {calories: 161, carbs: 37, protein: 4.3, fat: 0.2, description: "Potatoes are starchy tubers.", origin: "Root farms"},
+            onion: {calories: 44, carbs: 10, protein: 1.2, fat: 0.1, description: "Onions add flavor and nutrients.", origin: "Bulb farms"},
+            cabbage: {calories: 22, carbs: 5.2, protein: 1.1, fat: 0.1, description: "Cabbage is rich in fiber.", origin: "Leafy farms"},
+            tomato: {calories: 18, carbs: 3.9, protein: 0.9, fat: 0.2, description: "Tomatoes are full of lycopene.", origin: "Greenhouses"},
+            cucumber: {calories: 16, carbs: 3.6, protein: 0.7, fat: 0.1, description: "Cucumbers hydrate and refresh.", origin: "Vine crops"},
+            lettuce: {calories: 15, carbs: 2.9, protein: 1.4, fat: 0.2, description: "Lettuce is low in calories.", origin: "Leafy farms"},
+            carrot: {calories: 41, carbs: 10, protein: 0.9, fat: 0.2, description: "Carrots are high in beta-carotene.", origin: "Root farms"},
+            mango: {calories: 99, carbs: 25, protein: 1.4, fat: 0.6, description: "Mangoes are sweet tropical fruits.", origin: "Tropical farms"},
+            watermelon: {calories: 85, carbs: 21.6, protein: 1.7, fat: 0.4, description: "Watermelons are hydrating.", origin: "Vine crops"},
+            pineapple: {calories: 82, carbs: 22, protein: 0.9, fat: 0.2, description: "Pineapples are juicy tropical fruits.", origin: "Tropical farms"},
+            broccoli: {calories: 55, carbs: 11, protein: 3.7, fat: 0.6, description: "Broccoli is full of vitamins.", origin: "Cruciferous farms"},
+            spinach: {calories: 23, carbs: 3.6, protein: 2.9, fat: 0.4, description: "Spinach is iron-rich.", origin: "Leafy farms"},
+            "sweet potato": {calories: 103, carbs: 24, protein: 2.3, fat: 0.2, description: "Sweet potatoes are vitamin-rich.", origin: "Root farms"},
+            beetroot: {calories: 43, carbs: 9.6, protein: 1.6, fat: 0.2, description: "Beetroots support blood flow.", origin: "Root farms"}
+        };
+
+        // App State
+        let stream = null;
+        let model = null;
+        let detectedObject = '';
+
+        // Initialize Camera
+        async function initializeCamera() {
+            try {
+                if (!navigator.mediaDevices?.getUserMedia) {
+                    throw new Error('Camera API not supported');
+                }
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    video: {
+                        facingMode: 'environment',
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 }
+                    }
+                });
+
+                cameraElement.srcObject = stream;
+                await new Promise((resolve) => {
+                    cameraElement.onloadedmetadata = () => {
+                        cameraElement.play().then(resolve).catch(error => {
+                            showError('Camera failed to start: ' + error.message);
+                        });
+                    };
+                });
+                return true;
+            } catch (error) {
+                showError('Camera access denied: ' + error.message);
+                return false;
+            }
+        }
+         
+        // Initialize Model (Fixed loading)
+        async function initializeModel() {
+            try {
+                model = await cocoSsd.load();
+                return true;
+            } catch (error) {
+                showError('AI model failed to load: ' + error.message);
+                return false;
+            }
+        }
+
+        // Initialize Application
+        async function init() {
+            try {
+                const cameraReady = await initializeCamera();
+                const modelReady = await initializeModel();
+                
+                if (cameraReady && modelReady) {
+                    captureBtn.disabled = false;
+                } else {
+                    captureBtn.disabled = true;
+                    searchBtn.disabled = true;
+                }
+            } catch (error) {
+                showError('Initialization failed: ' + error.message);
+            }
+        }
+         
+        // Enhanced Detection Function
+        async function captureAndDetect() {
+            try {
+                canvasElement.width = cameraElement.videoWidth;
+                canvasElement.height = cameraElement.videoHeight;
+                const context = canvasElement.getContext('2d');
+                context.drawImage(cameraElement, 0, 0);
+
+                const predictions = await model.detect(canvasElement);
+                const validDetections = predictions
+                    .filter(p => foodList.includes(p.class) && p.score > 0.7)
+                    .sort((a, b) => b.score - a.score);
+
+                if (validDetections.length > 0) {
+                    detectedObject = validDetections[0].class;
+                    objectNameElement.innerHTML = `Detected: ${detectedObject}<br>
+                        <small>(${Math.round(validDetections[0].score * 100)}% confidence)</small>`;
+                    searchBtn.disabled = false;
+                } else {
+                    showError('No recognized produce detected');
+                    searchBtn.disabled = true;
+                }
+            } catch (error) {
+                showError('Detection failed: ' + error.message);
+            }
+        }
+
+        // Analyze Nutrition
+        async function searchNutrition() {
+            if (!detectedObject) return showError('No produce detected');
+            
+            try {
+                toggleLoading(true);
+                const data = foodDatabase[detectedObject] || {
+                    calories: 0,
+                    carbs: 0,
+                    protein: 0,
+                    fat: 0,
+                    description: "Nutritional information not available",
+                    origin: "Unknown"
+                };
+                displayNutritionData(data);
+            } catch (error) {
+                showError('Analysis failed: ' + error.message);
+            } finally {
+                toggleLoading(false);
+            }
+        }
+
+        // Map vendor demo data
+        const vendorLocations = [
+            { name: "Green Valley Farm Stall", lat: -26.2041, lng: 28.0473 },
+            { name: "Fresh Market", lat: -26.202, lng: 28.045 },
+            { name: "Organic Produce Hub", lat: -26.206, lng: 28.05 }
+        ];
+        let vendorMapInstance = null;
+
+        function showVendorMap() {
+            const mapDiv = document.getElementById('vendorMap');
+            mapDiv.style.display = 'block';
+            if (vendorMapInstance) {
+                vendorMapInstance.invalidateSize();
+                return;
+            }
+            vendorMapInstance = L.map('vendorMap').setView([-26.2041, 28.0473], 14);
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(vendorMapInstance);
+            vendorLocations.forEach(vendor => {
+                L.marker([vendor.lat, vendor.lng])
+                    .addTo(vendorMapInstance)
+                    .bindPopup(`<b>${vendor.name}</b>`);
+            });
+        }
+
+        // Display Nutrition Data
+        function displayNutritionData(data) {
+            if (nutritionChart) nutritionChart.destroy();
+
+            // Nutrition Chart
+            const ctx = document.getElementById('nutritionChart').getContext('2d');
+            nutritionChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Carbs', 'Protein', 'Fat'],
+                    datasets: [{
+                        data: [data.carbs, data.protein, data.fat],
+                        backgroundColor: ['#2ecc71', '#3498db', '#e67e22'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '65%',
+                    plugins: {
+                        legend: { position: 'bottom', labels: { color: '#fff' } }
+                    }
+                }
+            });
+
+            // Nutrition Grid
+            nutritionDataElement.innerHTML = `
+                <div class="nutrient-card">
+                    <div class="nutrient-value">${data.calories}</div>
+                    <div class="nutrient-label">Calories</div>
+                </div>
+                <div class="nutrient-card">
+                    <div class="nutrient-value">${data.carbs}g</div>
+                    <div class="nutrient-label">Carbs</div>
+                </div>
+                <div class="nutrient-card">
+                    <div class="nutrient-value">${data.protein}g</div>
+                    <div class="nutrient-label">Protein</div>
+                </div>
+                <div class="nutrient-card">
+                    <div class="nutrient-value">${data.fat}g</div>
+                    <div class="nutrient-label">Fat</div>
+                </div>
+            `;
+
+            // Product Info
+            foodDescriptionElement.innerHTML = `
+                <h3>Product Information</h3>
+                <p>${data.description}</p>
+                <p style="margin-top: 1rem; color: var(--accent);">
+                    Origin: ${data.origin}
+                </p>
+            `;
+
+            resultsElement.style.display = 'block';
+            showVendorMap();
+        }
+
+        // Utility Functions
+        function toggleLoading(isLoading) {
+            searchBtn.innerHTML = isLoading 
+                ? 'Analyzing <span class="loading"></span>'
+                : '🔍 Analyze';
+            searchBtn.disabled = isLoading;
+        }
+
+        function showError(message) {
+            errorElement.textContent = message;
+            setTimeout(() => errorElement.textContent = '', 5000);
+        }
+
+        // Event Listeners
+        captureBtn.addEventListener('click', captureAndDetect);
+        searchBtn.addEventListener('click', searchNutrition);
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

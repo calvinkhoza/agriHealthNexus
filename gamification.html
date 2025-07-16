@@ -1,0 +1,1128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FarmRewards - Agricultural Marketplace Gamification</title>
+    <style>
+        :root {
+            --primary: #4CAF50;
+            --primary-light: #81C784;
+            --primary-dark: #388E3C;
+            --secondary: #FFA000;
+            --secondary-light: #FFC107;
+            --secondary-dark: #FF8F00;
+            --text: #2E7D32;
+            --text-light: #81C784;
+            --text-dark: #1B5E20;
+            --bg: #F1F8E9;
+            --card-bg: #FFFFFF;
+            --border: #C8E6C9;
+            --success: #4CAF50;
+            --warning: #FFC107;
+            --danger: #F44336;
+            --info: #2196F3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text-dark);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+        }
+
+        h1 i {
+            margin-right: 12px;
+        }
+
+        h2, h3, h4 {
+            color: var(--text-dark);
+        }
+
+        h3 {
+            font-size: 22px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+        }
+
+        h3 i {
+            margin-right: 8px;
+            color: var(--primary);
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-top: 24px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .section {
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            border: 1px solid var(--border);
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 24px;
+            align-items: stretch;
+        }
+
+        .game-card {
+            background: linear-gradient(135deg, #fff 0%, var(--bg) 100%);
+            border-radius: 16px;
+            border: 2px solid var(--border);
+            padding: 24px;
+            transition: all 0.2s ease;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            cursor: pointer;
+            min-height: 240px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .game-card:hover {
+            box-shadow: 0 8px 32px 0 rgba(76,175,80,0.18), 0 1.5px 8px 0 rgba(76,175,80,0.10);
+            border: 2px solid var(--primary);
+            transform: translateY(-8px);
+            z-index: 10;
+        }
+
+        .game-card.completed {
+            opacity: 0.7;
+            filter: saturate(0.8);
+            cursor: not-allowed;
+        }
+
+        .game-icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .game-title {
+            font-weight: 600;
+            color: var(--text-dark);
+            margin-bottom: 8px;
+            text-align: center;
+        }
+
+        .game-desc {
+            font-size: 14px;
+            color: var(--text);
+            margin-bottom: 16px;
+            text-align: center;
+        }
+
+        .game-meta {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+
+        .game-meta-label {
+            color: var(--text);
+        }
+
+        .game-meta-value {
+            font-weight: 500;
+        }
+
+        .difficulty-easy {
+            color: var(--success);
+        }
+
+        .difficulty-medium {
+            color: var(--warning);
+        }
+
+        .difficulty-hard {
+            color: var(--danger);
+        }
+
+        .game-button {
+            width: 100%;
+            background: linear-gradient(90deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+            padding: 12px 0;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 16px;
+            border: none;
+            margin-top: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .game-button:hover {
+            background: linear-gradient(90deg, var(--primary-dark) 0%, var(--primary) 100%);
+        }
+
+        .game-button:disabled {
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+
+        .completed-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255,255,255,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            z-index: 2;
+        }
+
+        .completed-badge {
+            background: var(--success);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-weight: 600;
+        }
+
+        .badges-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 16px;
+        }
+
+        .badge-card {
+            text-align: center;
+            padding: 16px;
+            border-radius: 16px;
+            border: 2px solid var(--border);
+            background: linear-gradient(135deg, #fef9c3 0%, #fdba74 100%);
+            box-shadow: 0 2px 8px 0 rgba(251, 191, 36, 0.08);
+            transition: all 0.2s;
+        }
+
+        .badge-card.locked {
+            background: #f9fafb;
+            box-shadow: none;
+            opacity: 0.6;
+            border-color: #e5e7eb;
+        }
+
+        .badge-icon {
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .badge-name {
+            font-weight: 600;
+            font-size: 15px;
+            margin-bottom: 4px;
+        }
+
+        .badge-desc {
+            font-size: 13px;
+            color: #64748b;
+            margin-bottom: 0;
+        }
+
+        .badge-status {
+            font-size: 12px;
+            margin-top: 8px;
+            font-weight: 500;
+            color: var(--success);
+        }
+
+        .badge-status.locked {
+            color: #9ca3af;
+        }
+
+        .leaderboard {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .leaderboard-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            background: #f9fafb;
+            transition: all 0.2s;
+        }
+
+        .leaderboard-item.current-user {
+            border-color: #bfdbfe;
+            background: #dbeafe;
+            box-shadow: 0 2px 8px 0 rgba(59, 130, 246, 0.08);
+        }
+
+        .leaderboard-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .leaderboard-rank {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 16px;
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .leaderboard-rank.gold {
+            background: #fef9c3;
+            color: #b45309;
+        }
+
+        .leaderboard-rank.silver {
+            background: #f3f4f6;
+            color: #64748b;
+        }
+
+        .leaderboard-rank.bronze {
+            background: #fed7aa;
+            color: #b45309;
+        }
+
+        .leaderboard-name {
+            font-weight: 600;
+            color: #1e293b;
+        }
+
+        .leaderboard-xp {
+            font-size: 14px;
+            color: #64748b;
+        }
+
+        .leaderboard-games {
+            font-size: 13px;
+            color: #059669;
+            font-weight: 500;
+        }
+
+        .current-user-badge {
+            font-size: 12px;
+            background: #dbeafe;
+            color: #1e40af;
+            padding: 2px 8px;
+            border-radius: 8px;
+            font-weight: 500;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .modal {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 700;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #64748b;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            margin-bottom: 16px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--primary);
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .question {
+            margin-bottom: 24px;
+        }
+
+        .question-text {
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 16px;
+        }
+
+        .option {
+            width: 100%;
+            text-align: left;
+            padding: 12px 16px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            background: white;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option:hover {
+            border-color: var(--primary-light);
+            background: #E8F5E9;
+        }
+
+        .option-prefix {
+            font-weight: 600;
+            margin-right: 8px;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+        }
+
+        .xp-indicator {
+            font-size: 14px;
+            color: var(--text);
+        }
+
+        .completion-modal {
+            text-align: center;
+            padding: 32px;
+        }
+
+        .completion-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            color: var(--primary);
+        }
+
+        .completion-title {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .completion-message {
+            font-size: 16px;
+            margin-bottom: 24px;
+            color: #64748b;
+        }
+
+        .rewards-box {
+            background: #FFF8E1;
+            border: 1px solid #FFE082;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 24px;
+        }
+
+        .rewards-title {
+            font-weight: 600;
+            color: #FF8F00;
+            margin-bottom: 8px;
+        }
+
+        .reward-item {
+            font-size: 14px;
+            color: #5D4037;
+            margin-bottom: 4px;
+        }
+
+        .collect-button {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            font-weight: 600;
+            border: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .collect-button:hover {
+            background: var(--primary-dark);
+        }
+
+        @media (max-width: 768px) {
+            .stats-grid {
+                grid-template-columns: 1fr;
+                gap: 12px;
+            }
+            
+            .games-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .badges-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i>🌱</i> FarmRewards - Earn Discounts & Offers</h1>
+            <p>Play quizzes to earn discounts on farm products and special offers!</p>
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <div class="stat-value" id="total-xp">0</div>
+                    <div class="stat-label">Total Farm Points</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="badges-count">0</div>
+                    <div class="stat-label">Badges Earned</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-value" id="games-played">0</div>
+                    <div class="stat-label">Quizzes Played</div>
+                </div>
+            </div>
+        </header>
+
+        <section class="section">
+            <h3><i>🧑‍🌾</i> Farming Quizzes</h3>
+            <div class="games-grid" id="games-container">
+                <!-- Games will be inserted here by JavaScript -->
+            </div>
+        </section>
+
+        <section class="section">
+            <h3><i>🏆</i> Your Badges</h3>
+            <div class="badges-grid" id="badges-container">
+                <!-- Badges will be inserted here by JavaScript -->
+            </div>
+        </section>
+
+        <section class="section">
+            <h3><i>📊</i> Community Leaderboard</h3>
+            <div class="leaderboard" id="leaderboard-container">
+                <!-- Leaderboard items will be inserted here by JavaScript -->
+            </div>
+        </section>
+    </div>
+
+    <!-- Game Modal (hidden by default) -->
+    <div class="modal-overlay" id="game-modal" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <div>
+                    <div class="modal-title" id="modal-game-title">Farming Quiz</div>
+                    <div class="game-meta">
+                        <span id="question-count">Question 1/5</span>
+                        <span id="game-score">Score: 0 FP</span>
+                        <span id="game-time">2:00</span>
+                    </div>
+                </div>
+                <button class="modal-close" id="modal-close-btn">×</button>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progress-fill" style="width: 20%"></div>
+            </div>
+            <div class="question">
+                <div class="question-text" id="question-text">What is the best season for planting maize?</div>
+                <div class="options" id="options-container">
+                    <!-- Options will be inserted here by JavaScript -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="pause-btn">Pause</button>
+                <div class="xp-indicator">FP for this question: <span id="question-xp">25</span></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Completion Modal (hidden by default) -->
+    <div class="modal-overlay" id="completion-modal" style="display: none;">
+        <div class="modal completion-modal">
+            <div class="completion-icon">🎉</div>
+            <h3 class="completion-title">Quiz Complete!</h3>
+            <p class="completion-message">You earned <span id="earned-xp">150</span> Farm Points!</p>
+            <div class="rewards-box">
+                <div class="rewards-title">Rewards Earned:</div>
+                <div class="reward-item">• <span id="earned-xp-2">150</span> Farm Points</div>
+                <div class="reward-item">• 5% Discount on your next purchase</div>
+                <div class="reward-item">• Progress towards badges</div>
+                <div class="reward-item">• Leaderboard points</div>
+            </div>
+            <button class="collect-button" id="collect-btn">Collect Rewards</button>
+        </div>
+    </div>
+
+    <script>
+        // Game Data
+        const farmingGames = [
+            {
+                id: 'crop-quiz',
+                icon: '🌽',
+                title: 'Crop Knowledge Quiz',
+                description: 'Test your knowledge about crops, seasons, and farming techniques.',
+                difficulty: 'Easy',
+                timeLimit: 60,
+                xpReward: 100,
+                discount: '5% off on seeds'
+            },
+            {
+                id: 'soil-match',
+                icon: '🪴',
+                title: 'Soil Matching',
+                description: 'Match crops with their ideal soil types and conditions.',
+                difficulty: 'Medium',
+                timeLimit: 90,
+                xpReward: 150,
+                discount: '10% off on fertilizers'
+            },
+            {
+                id: 'pest-detective',
+                icon: '🐛',
+                title: 'Pest Detective',
+                description: 'Identify pests and diseases affecting crops and their solutions.',
+                difficulty: 'Hard',
+                timeLimit: 120,
+                xpReward: 200,
+                discount: '15% off on pesticides'
+            },
+            {
+                id: 'seasonal-challenge',
+                icon: '🌦️',
+                title: 'Seasonal Challenge',
+                description: 'Learn what to plant and when for maximum yield.',
+                difficulty: 'Easy',
+                timeLimit: 80,
+                xpReward: 120,
+                discount: '7% off seasonal crops'
+            },
+            {
+                id: 'organic-puzzle',
+                icon: '🥬',
+                title: 'Organic Farming Puzzle',
+                description: 'Build sustainable farming practices and organic solutions.',
+                difficulty: 'Medium',
+                timeLimit: 100,
+                xpReward: 180,
+                discount: '12% off organic products'
+            },
+            {
+                id: 'market-sim',
+                icon: '💰',
+                title: 'Market Simulator',
+                description: 'Practice selling your produce at the best prices and timing.',
+                difficulty: 'Hard',
+                timeLimit: 150,
+                xpReward: 250,
+                discount: '20% off on storage'
+            }
+        ];
+
+        const challengeQuestions = {
+            "crop-quiz": [
+                {
+                    question: "What is the best season for planting maize?",
+                    options: ["Winter", "Spring", "Summer", "Autumn"],
+                    answer: 2,
+                    xp: 25
+                },
+                {
+                    question: "Which crop is known as 'the king of crops'?",
+                    options: ["Wheat", "Rice", "Corn", "Barley"],
+                    answer: 1,
+                    xp: 30
+                },
+                {
+                    question: "What is the ideal pH range for most crops?",
+                    options: ["2.0-4.0", "4.5-5.5", "6.0-7.0", "8.0-9.0"],
+                    answer: 2,
+                    xp: 35
+                }
+            ],
+            "soil-match": [
+                {
+                    question: "Which crop grows best in sandy soil?",
+                    options: ["Rice", "Carrots", "Wheat", "Potatoes"],
+                    answer: 1,
+                    xp: 40
+                },
+                {
+                    question: "What type of soil is best for rice cultivation?",
+                    options: ["Clay soil", "Loamy soil", "Sandy soil", "Chalky soil"],
+                    answer: 0,
+                    xp: 45
+                }
+            ],
+            "pest-detective": [
+                {
+                    question: "What pest causes yellowing and curling of tomato leaves?",
+                    options: ["Aphids", "Whiteflies", "Cutworms", "Hornworms"],
+                    answer: 1,
+                    xp: 50
+                },
+                {
+                    question: "Which disease causes black spots on rose leaves?",
+                    options: ["Powdery mildew", "Black spot", "Rust", "Blight"],
+                    answer: 1,
+                    xp: 55
+                },
+                {
+                    question: "What is the organic solution for aphids?",
+                    options: ["Neem oil", "Vinegar", "Baking soda", "Salt water"],
+                    answer: 0,
+                    xp: 50
+                }
+            ],
+            "seasonal-challenge": [
+                {
+                    question: "Which vegetable is best planted in early spring?",
+                    options: ["Tomatoes", "Peppers", "Lettuce", "Eggplant"],
+                    answer: 2,
+                    xp: 30
+                },
+                {
+                    question: "What is a good winter cover crop?",
+                    options: ["Clover", "Corn", "Soybeans", "Sunflowers"],
+                    answer: 0,
+                    xp: 35
+                }
+            ],
+            "organic-puzzle": [
+                {
+                    question: "What is the main benefit of crop rotation?",
+                    options: ["Prevents soil depletion", "Reduces water usage", "Increases sunlight", "Speeds up growth"],
+                    answer: 0,
+                    xp: 40
+                },
+                {
+                    question: "Which is a natural fertilizer?",
+                    options: ["Compost", "Ammonium nitrate", "Superphosphate", "Potassium chloride"],
+                    answer: 0,
+                    xp: 45
+                }
+            ],
+            "market-sim": [
+                {
+                    question: "When is the best time to sell tomatoes for highest price?",
+                    options: ["Early season", "Mid season", "Late season", "Off season"],
+                    answer: 3,
+                    xp: 60
+                },
+                {
+                    question: "What factor doesn't affect crop prices?",
+                    options: ["Weather", "Demand", "Soil type", "Transport costs"],
+                    answer: 2,
+                    xp: 55
+                }
+            ]
+        };
+
+        // User Data
+        let userData = {
+            totalXP: 0,
+            gamesPlayed: 0,
+            completedGames: [],
+            unlockedBadges: [
+                { id: 'starter', name: 'Starter Farmer', description: 'Complete your first quiz', icon: '🌱', unlocked: false },
+                { id: 'regular', name: 'Regular Farmer', description: 'Complete 3 quizzes', icon: '👨‍🌾', unlocked: false },
+                { id: 'expert', name: 'Expert Farmer', description: 'Complete all easy quizzes', icon: '🧑‍🌾', unlocked: false },
+                { id: 'master', name: 'Master Farmer', description: 'Earn 3000 Farm Points', icon: '🏆', unlocked: false }
+            ]
+        };
+
+        // Leaderboard Data
+        const leaderboard = [
+            { rank: 1, name: 'Thabo M.', xp: 3250, avatar: '🏆', gamesPlayed: 12 },
+            { rank: 2, name: 'Nomsa K.', xp: 2890, avatar: '🥈', gamesPlayed: 10 },
+            { rank: 3, name: 'You', xp: 2850, avatar: '🥉', isCurrentUser: true, gamesPlayed: 8 },
+            { rank: 4, name: 'Mandla S.', xp: 2420, avatar: '👤', gamesPlayed: 9 },
+            { rank: 5, name: 'Zanele P.', xp: 2180, avatar: '👤', gamesPlayed: 7 }
+        ];
+
+        // Current Game State
+        let currentGame = null;
+        let gameState = {
+            timeLeft: 0,
+            currentQuestion: 0,
+            score: 0,
+            gameState: 'playing' // playing, completed, paused
+        };
+
+        // DOM Elements
+        const gamesContainer = document.getElementById('games-container');
+        const badgesContainer = document.getElementById('badges-container');
+        const leaderboardContainer = document.getElementById('leaderboard-container');
+        const totalXpElement = document.getElementById('total-xp');
+        const badgesCountElement = document.getElementById('badges-count');
+        const gamesPlayedElement = document.getElementById('games-played');
+        const gameModal = document.getElementById('game-modal');
+        const completionModal = document.getElementById('completion-modal');
+        const modalCloseBtn = document.getElementById('modal-close-btn');
+        const collectBtn = document.getElementById('collect-btn');
+        const pauseBtn = document.getElementById('pause-btn');
+        const modalGameTitle = document.getElementById('modal-game-title');
+        const questionCount = document.getElementById('question-count');
+        const gameScore = document.getElementById('game-score');
+        const gameTime = document.getElementById('game-time');
+        const progressFill = document.getElementById('progress-fill');
+        const questionText = document.getElementById('question-text');
+        const optionsContainer = document.getElementById('options-container');
+        const questionXp = document.getElementById('question-xp');
+        const earnedXp = document.getElementById('earned-xp');
+        const earnedXp2 = document.getElementById('earned-xp-2');
+
+        // Initialize the page
+        function init() {
+            renderGames();
+            renderBadges();
+            renderLeaderboard();
+            updateStats();
+            
+            // Load saved data from localStorage
+            const savedData = localStorage.getItem('farmRewardsData');
+            if (savedData) {
+                userData = JSON.parse(savedData);
+                updateStats();
+            }
+            
+            // Event listeners
+            modalCloseBtn.addEventListener('click', closeGameModal);
+            collectBtn.addEventListener('click', closeCompletionModal);
+            pauseBtn.addEventListener('click', togglePause);
+        }
+
+        // Render games grid
+        function renderGames() {
+            gamesContainer.innerHTML = '';
+            farmingGames.forEach(game => {
+                const isCompleted = userData.completedGames.includes(game.id);
+                const gameElement = document.createElement('div');
+                gameElement.className = `game-card ${isCompleted ? 'completed' : ''}`;
+                gameElement.innerHTML = `
+                    <div>
+                        <div class="game-icon">${game.icon}</div>
+                        <h4 class="game-title">${game.title}</h4>
+                        <p class="game-desc">${game.description}</p>
+                        <div class="game-meta">
+                            <span class="game-meta-label">Difficulty:</span>
+                            <span class="game-meta-value difficulty-${game.difficulty.toLowerCase()}">${game.difficulty}</span>
+                        </div>
+                        <div class="game-meta">
+                            <span class="game-meta-label">Time Limit:</span>
+                            <span class="game-meta-value">${Math.floor(game.timeLimit / 60)}m ${game.timeLimit % 60}s</span>
+                        </div>
+                        <div class="game-meta">
+                            <span class="game-meta-label">Farm Points:</span>
+                            <span class="game-meta-value">${game.xpReward} FP</span>
+                        </div>
+                    </div>
+                    <button class="game-button" ${isCompleted ? 'disabled' : ''}>
+                        Play Now
+                    </button>
+                    ${isCompleted ? `
+                    <div class="completed-overlay">
+                        <span class="completed-badge">Completed</span>
+                    </div>` : ''}
+                `;
+                
+                if (!isCompleted) {
+                    gameElement.addEventListener('click', () => startGame(game.id));
+                }
+                
+                gamesContainer.appendChild(gameElement);
+            });
+        }
+
+        // Render badges grid
+        function renderBadges() {
+            badgesContainer.innerHTML = '';
+            userData.unlockedBadges.forEach(badge => {
+                const badgeElement = document.createElement('div');
+                badgeElement.className = `badge-card ${badge.unlocked ? '' : 'locked'}`;
+                badgeElement.innerHTML = `
+                    <div class="badge-icon">${badge.unlocked ? badge.icon : '🔒'}</div>
+                    <h4 class="badge-name">${badge.name}</h4>
+                    <p class="badge-desc">${badge.description}</p>
+                    <div class="badge-status ${badge.unlocked ? '' : 'locked'}">
+                        ${badge.unlocked ? 'Unlocked' : 'Locked'}
+                    </div>
+                `;
+                badgesContainer.appendChild(badgeElement);
+            });
+        }
+
+        // Render leaderboard
+        function renderLeaderboard() {
+            leaderboardContainer.innerHTML = '';
+            leaderboard.forEach(entry => {
+                const entryElement = document.createElement('div');
+                entryElement.className = `leaderboard-item ${entry.isCurrentUser ? 'current-user' : ''}`;
+                entryElement.innerHTML = `
+                    <div class="leaderboard-info">
+                        <div class="leaderboard-rank ${entry.rank === 1 ? 'gold' : entry.rank === 2 ? 'silver' : entry.rank === 3 ? 'bronze' : ''}">
+                            ${entry.rank <= 3 ? entry.avatar : entry.rank}
+                        </div>
+                        <div>
+                            <div class="leaderboard-name">${entry.name}</div>
+                            <div class="leaderboard-xp">${entry.xp} FP</div>
+                            ${entry.isCurrentUser ? `<div class="leaderboard-games">Quizzes Played: ${userData.gamesPlayed}</div>` : ''}
+                        </div>
+                    </div>
+                    ${entry.isCurrentUser ? '<div class="current-user-badge">You</div>' : ''}
+                `;
+                leaderboardContainer.appendChild(entryElement);
+            });
+        }
+
+        // Update stats display
+        function updateStats() {
+            totalXpElement.textContent = userData.totalXP;
+            badgesCountElement.textContent = userData.unlockedBadges.filter(b => b.unlocked).length;
+            gamesPlayedElement.textContent = userData.gamesPlayed;
+            
+            // Save to localStorage
+            localStorage.setItem('farmRewardsData', JSON.stringify(userData));
+        }
+
+        // Start a game
+        function startGame(gameId) {
+            currentGame = farmingGames.find(g => g.id === gameId);
+            if (!currentGame) return;
+            
+            gameState = {
+                timeLeft: currentGame.timeLimit,
+                currentQuestion: 0,
+                score: 0,
+                gameState: 'playing'
+            };
+            
+            // Update modal with game info
+            modalGameTitle.textContent = currentGame.title;
+            renderQuestion();
+            
+            // Start timer
+            gameTimer = setInterval(updateGameTimer, 1000);
+            
+            // Show modal
+            gameModal.style.display = 'flex';
+        }
+
+        // Render current question
+        function renderQuestion() {
+            const questions = challengeQuestions[currentGame.id] || challengeQuestions['crop-quiz'];
+            const question = questions[gameState.currentQuestion];
+            
+            if (!question) {
+                endGame();
+                return;
+            }
+            
+            // Update question info
+            questionCount.textContent = `Question ${gameState.currentQuestion + 1}/${questions.length}`;
+            gameScore.textContent = `Score: ${gameState.score} FP`;
+            questionText.textContent = question.question;
+            questionXp.textContent = question.xp;
+            
+            // Update progress bar
+            const progressPercent = ((gameState.currentQuestion + 1) / questions.length) * 100;
+            progressFill.style.width = `${progressPercent}%`;
+            
+            // Render options
+            optionsContainer.innerHTML = '';
+            question.options.forEach((option, index) => {
+                const optionElement = document.createElement('button');
+                optionElement.className = 'option';
+                optionElement.innerHTML = `<span class="option-prefix">${String.fromCharCode(65 + index)}.</span> ${option}`;
+                optionElement.addEventListener('click', () => handleAnswer(index));
+                optionsContainer.appendChild(optionElement);
+            });
+        }
+
+        // Handle answer selection
+        function handleAnswer(selectedIndex) {
+            const questions = challengeQuestions[currentGame.id] || challengeQuestions['crop-quiz'];
+            const question = questions[gameState.currentQuestion];
+            const isCorrect = selectedIndex === question.answer;
+            
+            if (isCorrect) {
+                gameState.score += question.xp;
+                gameScore.textContent = `Score: ${gameState.score} FP`;
+            }
+            
+            if (gameState.currentQuestion < questions.length - 1) {
+                gameState.currentQuestion++;
+                renderQuestion();
+            } else {
+                endGame();
+            }
+        }
+
+        // Update game timer
+        function updateGameTimer() {
+            if (gameState.gameState !== 'playing') return;
+            
+            gameState.timeLeft--;
+            const mins = Math.floor(gameState.timeLeft / 60);
+            const secs = gameState.timeLeft % 60;
+            gameTime.textContent = `${mins}:${secs.toString().padStart(2, '0')}`;
+            
+            if (gameState.timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        // Toggle pause
+        function togglePause() {
+            if (gameState.gameState === 'playing') {
+                gameState.gameState = 'paused';
+                pauseBtn.textContent = 'Resume';
+                clearInterval(gameTimer);
+            } else {
+                gameState.gameState = 'playing';
+                pauseBtn.textContent = 'Pause';
+                gameTimer = setInterval(updateGameTimer, 1000);
+            }
+        }
+
+        // End the game
+        function endGame() {
+            clearInterval(gameTimer);
+            
+            // Update user data
+            userData.totalXP += gameState.score;
+            userData.gamesPlayed++;
+            
+            if (!userData.completedGames.includes(currentGame.id)) {
+                userData.completedGames.push(currentGame.id);
+            }
+            
+            // Check for badge unlocks
+            if (userData.gamesPlayed >= 1 && !userData.unlockedBadges[0].unlocked) {
+                userData.unlockedBadges[0].unlocked = true;
+            }
+            if (userData.gamesPlayed >= 3 && !userData.unlockedBadges[1].unlocked) {
+                userData.unlockedBadges[1].unlocked = true;
+            }
+            if (userData.completedGames.length >= 2 && !userData.unlockedBadges[2].unlocked) {
+                userData.unlockedBadges[2].unlocked = true;
+            }
+            if (userData.totalXP >= 3000 && !userData.unlockedBadges[3].unlocked) {
+                userData.unlockedBadges[3].unlocked = true;
+            }
+            
+            // Update UI
+            updateStats();
+            renderGames();
+            renderBadges();
+            renderLeaderboard();
+            
+            // Show completion modal
+            earnedXp.textContent = gameState.score;
+            earnedXp2.textContent = gameState.score;
+            gameModal.style.display = 'none';
+            completionModal.style.display = 'flex';
+        }
+
+        // Close game modal
+        function closeGameModal() {
+            clearInterval(gameTimer);
+            gameModal.style.display = 'none';
+        }
+
+        // Close completion modal
+        function closeCompletionModal() {
+            completionModal.style.display = 'none';
+        }
+
+        // Initialize the app
+        init();
+    </script>
+</body>
+</html>

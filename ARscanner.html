@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>AgricHealth</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <style>
+        body {
+            margin: 0;
+            background: linear-gradient(rgba(0,0,0,0.7), rgba(0,0,0,0.7)), 
+                        url('assets/images/sprawling agricultural farm featuring fields of crops_ AI Generated.jpg');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            min-height: 100vh;
+            font-family: 'Arial', sans-serif;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            animation: fadeIn 1s forwards;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 3rem;
+            margin-bottom: 40px;
+            text-shadow: 0 0 20px rgba(46, 204, 113, 0.8);
+        }
+
+        .upload-box {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 40px;
+            margin: 20px 0;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            border: 2px dashed #2ecc71;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .upload-box:hover {
+            border-color: #27ae60;
+            transform: translateY(-5px);
+        }
+
+        #food-upload + label {
+            background: linear-gradient(45deg, #2ecc71, #27ae60);
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        #food-upload + label:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(46, 204, 113, 0.4);
+        }
+
+        .ar-scanner-btn {
+            background: linear-gradient(45deg, #3498db, #2980b9);
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: inline-block;
+            transition: all 0.3s ease;
+            margin-left: 15px;
+            border: none;
+            color: white;
+            font-size: 1em;
+            text-decoration: none;
+        }
+
+        .ar-scanner-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(52, 152, 219, 0.4);
+        }
+
+        .button-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        #nutrition-result {
+            margin-top: 30px;
+            padding: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 10px;
+            font-size: 1.2rem;
+        }
+
+        .nutrition-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .nutrition-item:last-child {
+            border-bottom: none;
+        }
+
+        .map-container {
+            height: 500px;
+            width: 100%;
+            border-radius: 15px;
+            margin-top: 30px;
+            overflow: hidden;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .back-btn {
+            display: block;
+            width: auto;
+            margin: 30px auto 0;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid #2ecc71;
+            padding: 15px 30px;
+            border-radius: 8px;
+            color: white;
+            text-decoration: none;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .back-btn:hover {
+            background: #2ecc71;
+            transform: translateY(-2px);
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+
+        .loading {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: #2ecc71;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1> AgriHealth Nexus</h1>
+        
+        <div class="upload-box" id="drop-zone">
+            <div class="button-group">
+                <input type="file" id="food-upload" accept="image/*" hidden>
+                <label for="food-upload"> Upload Crop Image</label>
+                
+                <button class="ar-scanner-btn" onclick="window.location.href='scanner.html'">📲 AR Field Scanner</button>
+            </div>
+            <div id="nutrition-result">
+                <div class="nutrition-item">
+                    <span> Crop Detected:</span>
+                    <span>Spinach</span>
+                </div>
+                <div class="nutrition-item">
+                    <span> Nearest Vendor:</span>
+                    <span>Soweto Urban Growers</span>
+                </div>
+                <div class="nutrition-item">
+                    <span> Available Products:</span>
+                    <span>Leafy Greens</span>
+                </div>
+            </div>
+        </div>
+
+        <div id="map" class="map-container"></div>
+        
+        <a href="index.html" class="btn back-btn"> Back to Home</a>
+    </div>
+
+    <!-- Fixed script tag -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Provincial boundaries coordinates (approximate)
+        const provinceBounds = {
+            gauteng: { lat: [-26.5, -25.0], lng: [27.0, 29.0] },
+            westernCape: { lat: [-35.0, -31.0], lng: [17.0, 23.0] },
+            easternCape: { lat: [-34.0, -30.5], lng: [22.0, 30.0] },
+            kwazuluNatal: { lat: [-31.0, -27.0], lng: [29.0, 32.5] },
+            limpopo: { lat: [-25.0, -22.0], lng: [27.0, 31.5] },
+            mpumalanga: { lat: [-27.0, -24.5], lng: [29.0, 31.5] },
+            northWest: { lat: [-27.5, -24.5], lng: [23.0, 27.0] },
+            northernCape: { lat: [-32.5, -25.0], lng: [17.0, 24.0] },
+            freeState: { lat: [-30.5, -27.0], lng: [25.0, 29.0] }
+        };
+
+        // Agricultural products by region
+        const regionalProducts = {
+            gauteng: ["Maize", "Sunflowers", "Potatoes", "Poultry", "Dairy"],
+            westernCape: ["Grapes", "Apples", "Pears", "Wine", "Olives"],
+            easternCape: ["Citrus", "Pineapples", "Coffee", "Tea", "Forestry Products"],
+            kwazuluNatal: ["Sugar Cane", "Bananas", "Avocados", "Macadamia Nuts", "Tropical Fruits"],
+            limpopo: ["Tomatoes", "Mangoes", "Papayas", "Nuts", "Game Meat"],
+            mpumalanga: ["Citrus", "Bananas", "Cotton", "Tobacco", "Beef"],
+            northWest: ["Maize", "Sunflowers", "Beef", "Sorghum", "Legumes"],
+            northernCape: ["Dates", "Grapes", "Sheep", "Goats", "Alfalfa"],
+            freeState: ["Maize", "Wheat", "Sunflowers", "Beef", "Dairy"]
+        };
+
+        // Generate 100 random agricultural vendors
+        function generateVendors() {
+            const provinces = Object.keys(provinceBounds);
+            const vendors = [];
+            
+            for(let i = 0; i < 100; i++) {
+                const province = provinces[Math.floor(Math.random() * provinces.length)];
+                const bounds = provinceBounds[province];
+                
+                const vendor = {
+                    name: `AgriVendor ${i+1} (${province.replace(/([A-Z])/g, ' $1').trim()})`,
+                    location: [
+                        bounds.lat[0] + Math.random() * (bounds.lat[1] - bounds.lat[0]),
+                        bounds.lng[0] + Math.random() * (bounds.lng[1] - bounds.lng[0])
+                    ],
+                    products: getRandomProducts(province),
+                    province: province
+                };
+                
+                vendors.push(vendor);
+            }
+            return vendors;
+        }
+
+        function getRandomProducts(province) {
+            const baseProducts = regionalProducts[province];
+            const products = [];
+            const count = Math.floor(Math.random() * 3) + 3;
+            for(let i = 0; i < count; i++) {
+                products.push(baseProducts[Math.floor(Math.random() * baseProducts.length)]);
+            }
+            return [...new Set(products)];
+        }
+
+        // Initialize map
+        const map = L.map('map').setView([-28.4796, 24.6987], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
+        // Generate and add vendors
+        const vendors = generateVendors();
+        const farmIcon = L.icon({
+            iconUrl: 'https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-green.png',
+            iconSize: [25, 41],
+            iconAnchor: [12, 41]
+        });
+
+        vendors.forEach(vendor => {
+            L.marker(vendor.location, {icon: farmIcon})
+                .bindPopup(`
+                    <b>${vendor.name}</b><br>
+                    <u>Products:</u><br>
+                    • ${vendor.products.join("<br>• ")}
+                `)
+                .addTo(map);
+        });
+
+        // File upload handler
+        document.getElementById('food-upload').addEventListener('change', function(e) {
+            const detectedCrop = "Maize";
+            const userLocation = [-25.7479, 28.2293];
+            
+            const matchingVendors = vendors
+                .filter(v => v.products.some(p => p.toLowerCase() === detectedCrop.toLowerCase()))
+                .map(v => ({
+                    ...v,
+                    distance: calculateDistance(userLocation, v.location)
+                }))
+                .sort((a,b) => a.distance - b.distance)
+                .slice(0, 5);
+
+            if (matchingVendors.length > 0) {
+                map.flyTo(matchingVendors[0].location, 8);
+                const message = `Nearest ${detectedCrop} suppliers:\n\n${
+                    matchingVendors.map(v => 
+                        `${v.name}\n${v.distance.toFixed(1)}km - ${v.province}`
+                    ).join('\n\n')
+                }`;
+                alert(message);
+            } else {
+                alert(`No ${detectedCrop} suppliers found within 500km`);
+            }
+        });
+
+        // Haversine distance calculation
+        function calculateDistance(coord1, coord2) {
+            const [lat1, lon1] = coord1;
+            const [lat2, lon2] = coord2;
+            const R = 6371;
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLon = (lon2 - lon1) * Math.PI / 180;
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        }
+    </script>
+</body>
+</html>

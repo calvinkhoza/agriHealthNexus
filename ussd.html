@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgriHealth Nexus - USSD</title>
+    <style>
+        :root {
+            --primary: #2ecc71;
+            --secondary: #27ae60;
+            --accent: #e67e22;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+            --text: #333;
+            --gray: #757575;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Courier New', monospace;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: url('https://images.unsplash.com/photo-1464226184884-fa280b87c399?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=2070&q=80') no-repeat center center fixed;
+            background-size: cover;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(46, 204, 113, 0.1);
+            z-index: -1;
+        }
+        
+        .container {
+            display: flex;
+            gap: 40px;
+            max-width: 1200px;
+            margin: 20px;
+            align-items: center;
+        }
+        
+        .instructions {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            max-width: 400px;
+        }
+        
+        .instructions h2 {
+            color: var(--primary);
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--primary);
+            padding-bottom: 8px;
+        }
+        
+        .instructions p {
+            margin-bottom: 15px;
+            line-height: 1.6;
+        }
+        
+        .instructions ol {
+            padding-left: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .instructions li {
+            margin-bottom: 8px;
+        }
+        
+        .phone-container {
+            position: relative;
+            width: 320px;
+            height: 650px;
+            perspective: 1000px;
+        }
+        
+        .phone {
+            width: 100%;
+            height: 100%;
+            background: #111;
+            border-radius: 35px;
+            padding: 25px;
+            position: relative;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5),
+                        0 0 0 8px #333,
+                        0 0 0 12px #555;
+            transform-style: preserve-3d;
+            transform: rotateY(0deg);
+            transition: transform 0.5s ease;
+        }
+        
+        .phone:hover {
+            transform: rotateY(5deg);
+        }
+        
+        .screen {
+            background: #000;
+            height: 100%;
+            border-radius: 15px;
+            padding: 15px;
+            color: #fff;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+        
+        .header {
+            color: var(--primary);
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        .ussd-display {
+            flex: 1;
+            overflow-y: auto;
+            margin-bottom: 10px;
+            font-size: 14px;
+            line-height: 1.5;
+            white-space: pre-wrap;
+        }
+        
+        .input-area {
+            display: flex;
+            height: 40px;
+            align-items: center;
+            background: #111;
+            border-top: 1px solid #333;
+            padding-top: 10px;
+        }
+        
+        .input-area input {
+            flex: 1;
+            background: #222;
+            border: 1px solid #333;
+            color: white;
+            padding: 8px 12px;
+            font-family: 'Courier New', monospace;
+            border-radius: 4px;
+            outline: none;
+        }
+        
+        .input-area button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            margin-left: 8px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+        }
+        
+        .input-area button:active {
+            transform: scale(0.95);
+            background: var(--secondary);
+        }
+        
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 15px;
+        }
+        
+        .key {
+            background: #333;
+            color: white;
+            border-radius: 5px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 45px;
+            font-size: 18px;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        
+        .key:active {
+            background: #555;
+            transform: translateY(2px);
+        }
+        
+        .key.primary {
+            background: var(--primary);
+        }
+        
+        .key.secondary {
+            background: var(--accent);
+        }
+        
+        .key.danger {
+            background: var(--danger);
+        }
+        
+        .menu-item {
+            margin: 8px 0;
+            padding: 8px 5px;
+            border-bottom: 1px solid #333;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .menu-item.highlight {
+            color: var(--primary);
+            font-weight: bold;
+        }
+        
+        .success {
+            color: var(--primary);
+        }
+        
+        .error {
+            color: var(--danger);
+        }
+        
+        .warning {
+            color: var(--warning);
+        }
+        
+        .product-item {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            padding: 5px;
+        }
+        
+        .product-price {
+            color: var(--primary);
+        }
+        
+        .product-stock {
+            color: var(--warning);
+            font-size: 12px;
+        }
+        
+        .notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            z-index: 100;
+            text-align: center;
+            display: none;
+        }
+        
+        .phone-notch {
+            position: absolute;
+            top: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 20px;
+            background: #111;
+            border-bottom-left-radius: 15px;
+            border-bottom-right-radius: 15px;
+            z-index: 10;
+        }
+        
+        .phone-speaker {
+            position: absolute;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 5px;
+            background: #222;
+            border-radius: 5px;
+        }
+        
+        .phone-power {
+            position: absolute;
+            right: -5px;
+            top: 100px;
+            width: 5px;
+            height: 60px;
+            background: #333;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .phone-vol-up {
+            position: absolute;
+            right: -5px;
+            top: 180px;
+            width: 5px;
+            height: 40px;
+            background: #333;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .phone-vol-down {
+            position: absolute;
+            right: -5px;
+            top: 240px;
+            width: 5px;
+            height: 40px;
+            background: #333;
+            border-top-right-radius: 5px;
+            border-bottom-right-radius: 5px;
+        }
+        
+        .phone-home {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 120px;
+            height: 5px;
+            background: #333;
+            border-radius: 5px;
+        }
+
+        @media (max-width: 900px) {
+            .container {
+                flex-direction: column;
+                padding: 20px;
+            }
+            
+            .instructions {
+                max-width: 100%;
+                order: 2;
+            }
+            
+            .phone-container {
+                order: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="phone-container">
+            <div class="phone">
+                <div class="phone-notch"></div>
+                <div class="phone-speaker"></div>
+                <div class="phone-power"></div>
+                <div class="phone-vol-up"></div>
+                <div class="phone-vol-down"></div>
+                <div class="phone-home"></div>
+                
+                <div class="screen">
+                    <div class="header" id="ussdHeader">AgriHealth Nexus</div>
+                    <div class="ussd-display" id="ussdDisplay">
+Welcome to AgriHealth Nexus
+==========================
+1. Consumer
+2. Farmer
+
+00. Exit
+                    </div>
+                    
+                    <div class="input-area">
+                        <input type="text" id="ussdInput" autofocus>
+                        <button id="sendBtn">SEND</button>
+                    </div>
+                    
+                    <div class="keypad">
+                        <div class="key" onclick="pressKey('1')">1</div>
+                        <div class="key" onclick="pressKey('2')">2</div>
+                        <div class="key" onclick="pressKey('3')">3</div>
+                        <div class="key" onclick="pressKey('4')">4</div>
+                        <div class="key" onclick="pressKey('5')">5</div>
+                        <div class="key" onclick="pressKey('6')">6</div>
+                        <div class="key" onclick="pressKey('7')">7</div>
+                        <div class="key" onclick="pressKey('8')">8</div>
+                        <div class="key" onclick="pressKey('9')">9</div>
+                        <div class="key secondary" onclick="pressKey('*')">*</div>
+                        <div class="key" onclick="pressKey('0')">0</div>
+                        <div class="key primary" onclick="pressKey('#')">#</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="notification" id="notification"></div>
+        </div>
+
+        <div class="instructions">
+            <h2>How to Use AgriHealth Nexus USSD</h2>
+            <p>Welcome to AgriHealth Nexus - your gateway to connecting farmers and consumers for fresh, healthy produce.</p>
+            
+            <h3>Getting Started:</h3>
+            <ol>
+                <li>Select your role: <strong>1 for Consumer</strong> or <strong>2 for Farmer</strong></li>
+                <li>Follow the menu prompts to navigate the system</li>
+                <li>Use <strong>* to clear</strong> your input</li>
+                <li>Press <strong># to send</strong> your selection</li>
+                <li>Type <strong>00 at any time</strong> to exit</li>
+            </ol>
+            
+            <h3>For Consumers:</h3>
+            <p>Browse fresh produce, add items to your cart, and complete purchases directly from local farmers.</p>
+            
+            <h3>For Farmers:</h3>
+            <p>Manage your product listings, track orders, view sales analytics, and receive payments.</p>
+            
+            <h3>Tips:</h3>
+            <ul>
+                <li>No internet required - works on any mobile phone</li>
+                <li>Standard USSD rates apply from your network provider</li>
+                <li>Transactions are secure and private</li>
+            </ul>
+        </div>
+    </div>
+    <!-- Exit USSD Service button below the cellphone -->
+    <div style="display: flex; justify-content: center; margin-top: 18px;">
+        <button id="exitUssdServiceBtn" style="background: var(--danger); color: #fff; font-weight: bold; font-size: 1.1rem; border: none; border-radius: 8px; padding: 12px 32px; cursor: pointer;">Exit USSD Service</button>
+    </div>
+    <script>
+        // Enhanced USSD Application State
+        const state = {
+            currentMenu: 'main',
+            userType: null,
+            cart: [],
+            farmerProducts: [
+                { id: 1, name: 'Tomatoes', price: 18.99, stock: 50, category: 'vegetables', farmer: 'Green Valley Farm' },
+                { id: 2, name: 'Spinach', price: 24.50, stock: 30, category: 'vegetables', farmer: 'Green Valley Farm' },
+                { id: 3, name: 'Carrots', price: 21.99, stock: 40, category: 'vegetables', farmer: 'Sunny Acres' },
+                { id: 4, name: 'Strawberries', price: 35.50, stock: 20, category: 'fruits', farmer: 'Berry Good Farms' },
+                { id: 5, name: 'Apples', price: 12.99, stock: 35, category: 'fruits', farmer: 'Orchard Fresh' },
+                { id: 6, name: 'Free Range Eggs', price: 45.00, stock: 15, category: 'eggs', farmer: 'Happy Hens' }
+            ],
+            orders: [
+                { id: 1, items: ['Tomatoes (2kg)', 'Carrots (1kg)'], total: 59.97, date: '2023-05-15', status: 'delivered' },
+                { id: 2, items: ['Strawberries (1 box)', 'Apples (3kg)'], total: 84.47, date: '2023-06-02', status: 'delivered' }
+            ],
+            balance: 1845.97,
+            paymentMethods: [
+                { id: 1, name: 'Mobile Money', number: '0821234567' },
+                { id: 2, name: 'Bank Transfer', number: '1234567890', bank: 'Standard Bank' }
+            ],
+            currentProduct: null,
+            newProduct: null,
+            currentOrder: null,
+            paymentStatus: null,
+            currentCategory: null,
+            currentPaymentMethod: null,
+            transactions: [
+                { date: '2023-06-28', amount: 45.00, type: 'sale', order: 2 },
+                { date: '2023-06-15', amount: 59.97, type: 'sale', order: 1 },
+                { date: '2023-05-30', amount: -200.00, type: 'payout', reference: 'PAY12345' }
+            ]
+        };
+
+        // USSD Menu Definitions
+        const menus = {
+            main: `
+Welcome to AgriHealth Nexus
+==========================
+1. Consumer
+2. Farmer
+
+00. Exit
+            `,
+            consumer: `
+Consumer Menu
+=============
+1. Browse Products
+2. My Cart (${state.cart.length})
+3. Checkout
+4. Order History
+
+0. Main Menu
+00. Exit
+            `,
+            farmer: `
+Farmer Dashboard
+===============
+1. Product Management
+2. Order Management
+3. Sales Analytics
+4. Payment Settings
+5. Account (R${state.balance.toFixed(2)})
+
+0. Main Menu
+00. Exit
+            `,
+            browseProducts: `
+Browse Products
+===============
+1. Vegetables
+2. Fruits
+3. Eggs & Dairy
+4. All Products
+
+0. Back
+00. Main Menu
+            `,
+            productCategory: (category) => {
+                const categoryMap = {
+                    'Vegetables': 'vegetables',
+                    'Fruits': 'fruits',
+                    'Eggs & Dairy': 'eggs',
+                    'All Products': 'all'
+                };
+                state.currentCategory = categoryMap[category] || 'all';
+                
+                return `
+${category} Available
+${'='.repeat(category.length + 9)}
+${state.farmerProducts
+    .filter(p => state.currentCategory === 'all' || p.category === state.currentCategory)
+    .map((p, i) => `${i+1}. ${p.name} - R${p.price.toFixed(2)} (${p.stock} left)`)
+    .join('\n')}
+
+0. Back
+00. Main Menu
+                `;
+            },
+            productDetail: (product) => `
+${product.name}
+${'='.repeat(product.name.length)}
+Price: R${product.price.toFixed(2)}
+Stock: ${product.stock}
+Category: ${product.category.charAt(0).toUpperCase() + product.category.slice(1)}
+
+1. Add to Cart
+2. View Farmer Info
+
+0. Back
+00. Main Menu
+            `,
+            cart: `
+Your Shopping Cart
+=================
+${state.cart.length > 0 ? 
+    state.cart.map((item, i) => `${i+1}. ${item.name} x${item.qty} - R${(item.price * item.qty).toFixed(2)}`).join('\n') + 
+    `\n\nTotal: R${state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0).toFixed(2)}`
+    : 'Your cart is empty'}
+
+1. Checkout
+2. Remove Item
+3. Clear Cart
+
+0. Back
+00. Main Menu
+            `,
+            checkout: (total) => `
+Confirm Order
+============
+Items: ${state.cart.length}
+Total: R${total.toFixed(2)}
+
+1. Proceed to Payment
+2. Change Order
+
+0. Back
+00. Main Menu
+            `,
+            paymentMethods: `
+Select Payment Method
+====================
+${state.paymentMethods.map((method, i) => `${i+1}. ${method.name}${method.bank ? ` (${method.bank})` : ''}`).join('\n')}
+
+0. Back
+00. Main Menu
+            `,
+            paymentConfirm: (method, total) => `
+Confirm Payment
+==============
+Amount: R${total.toFixed(2)}
+Method: ${method.name}
+${method.bank ? `Bank: ${method.bank}\nAccount: ${method.number}` : `Number: ${method.number}`}
+
+1. Confirm Payment
+2. Change Method
+
+0. Cancel
+            `,
+            farmerProducts: `
+Product Management
+=================
+1. View All Products
+2. Add New Product
+3. Edit Product
+4. Delete Product
+
+0. Back
+00. Main Menu
+            `,
+            farmerOrders: `
+Order Management
+===============
+1. View All Orders
+2. View Pending
+3. View Completed
+4. Update Status
+
+0. Back
+00. Main Menu
+            `,
+            salesAnalytics: `
+Sales Analytics
+==============
+Total Sales: R${state.orders.reduce((sum, order) => sum + order.total, 0).toFixed(2)}
+Total Orders: ${state.orders.length}
+This Month: R${state.orders.filter(o => o.date.includes('2023-06')).reduce((sum, o) => sum + o.total, 0).toFixed(2)}
+
+1. Sales Report
+2. Popular Items
+
+0. Back
+00. Main Menu
+            `,
+            paymentSettings: `
+Payment Settings
+===============
+1. View Methods
+2. Add Method
+3. Remove Method
+
+0. Back
+00. Main Menu
+            `,
+            accountBalance: `
+Account Balance
+==============
+Available: R${state.balance.toFixed(2)}
+Pending: R0.00
+
+1. Request Payout
+2. Transaction History
+
+0. Back
+00. Main Menu
+            `
+        };
+
+        // DOM Elements
+        const ussdDisplay = document.getElementById('ussdDisplay');
+        const ussdHeader = document.getElementById('ussdHeader');
+        const ussdInput = document.getElementById('ussdInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const notification = document.getElementById('notification');
+
+        // Initialize USSD
+        function initUSSD() {
+            displayMenu('main');
+            ussdInput.focus();
+        }
+
+        // Display a menu
+        function displayMenu(menu, data = null) {
+            state.currentMenu = menu;
+            
+            if (menu === 'productCategory' && data) {
+                ussdDisplay.textContent = menus.productCategory(data);
+            } else if (menu === 'productDetail' && data) {
+                ussdDisplay.textContent = menus.productDetail(data);
+            } else if (menu === 'checkout' && data) {
+                ussdDisplay.textContent = menus.checkout(data);
+            } else if (menu === 'paymentConfirm' && data.method && data.total) {
+                ussdDisplay.textContent = menus.paymentConfirm(data.method, data.total);
+            } else {
+                ussdDisplay.textContent = menus[menu] || 'Menu not found';
+            }
+            
+            ussdInput.value = '';
+            updateHeader();
+        }
+
+        // Update header based on current context
+        function updateHeader() {
+            let header = 'AgriHealth Nexus';
+            if (state.userType) header += ` (${state.userType})`;
+            if (state.currentMenu === 'productDetail' && state.currentProduct) {
+                header = state.currentProduct.name;
+            }
+            ussdHeader.textContent = header;
+        }
+
+        // Show notification message
+        function showNotification(message, type = '', duration = 2000) {
+            notification.textContent = message;
+            notification.className = `notification ${type}`;
+            notification.style.display = 'block';
+            
+            setTimeout(() => {
+                notification.style.display = 'none';
+            }, duration);
+        }
+
+        // Get products for current category
+        function getCurrentCategoryProducts() {
+            if (state.currentCategory === 'all') {
+                return state.farmerProducts;
+            }
+            return state.farmerProducts.filter(p => p.category === state.currentCategory);
+        }
+
+        // Process USSD input
+        function processInput(input) {
+            input = input.trim();
+            
+            switch(state.currentMenu) {
+                case 'main':
+                    if (input === '1') {
+                        state.userType = 'consumer';
+                        displayMenu('consumer');
+                    } else if (input === '2') {
+                        state.userType = 'farmer';
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        showNotification('Thank you for using AgriHealth Nexus', 'success');
+                        setTimeout(() => displayMenu('main'), 2000);
+                    }
+                    break;
+                    
+                // CONSUMER FLOW
+                case 'consumer':
+                    if (input === '1') {
+                        displayMenu('browseProducts');
+                    } else if (input === '2') {
+                        displayMenu('cart');
+                    } else if (input === '3') {
+                        if (state.cart.length > 0) {
+                            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                            displayMenu('checkout', total);
+                        } else {
+                            showNotification('Your cart is empty', 'error');
+                        }
+                    } else if (input === '4') {
+                        ussdDisplay.textContent = `Order History\n=============\n${state.orders.map(o => `${o.id}. ${o.date} - R${o.total.toFixed(2)} (${o.status})`).join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'orderHistory';
+                    } else if (input === '0') {
+                        displayMenu('main');
+                    } else if (input === '00') {
+                        showNotification('Thank you for using AgriHealth Nexus', 'success');
+                        setTimeout(() => displayMenu('main'), 2000);
+                    }
+                    break;
+                    
+                case 'browseProducts':
+                    if (input === '1') {
+                        displayMenu('productCategory', 'Vegetables');
+                    } else if (input === '2') {
+                        displayMenu('productCategory', 'Fruits');
+                    } else if (input === '3') {
+                        displayMenu('productCategory', 'Eggs & Dairy');
+                    } else if (input === '4') {
+                        displayMenu('productCategory', 'All Products');
+                    } else if (input === '0') {
+                        displayMenu('consumer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'productCategory':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const products = getCurrentCategoryProducts();
+                        const index = parseInt(input) - 1;
+                        if (index < products.length) {
+                            state.currentProduct = products[index];
+                            displayMenu('productDetail', state.currentProduct);
+                        } else {
+                            showNotification('Invalid product number', 'error');
+                        }
+                    } else if (input === '0') {
+                        displayMenu('browseProducts');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'productDetail':
+                    if (input === '1') {
+                        const existingItem = state.cart.find(item => item.id === state.currentProduct.id);
+                        if (existingItem) {
+                            if (existingItem.qty < state.currentProduct.stock) {
+                                existingItem.qty += 1;
+                                showNotification(`Added another ${state.currentProduct.name}`, 'success');
+                            } else {
+                                showNotification(`Only ${state.currentProduct.stock} available`, 'error');
+                            }
+                        } else {
+                            state.cart.push({
+                                id: state.currentProduct.id,
+                                name: state.currentProduct.name,
+                                price: state.currentProduct.price,
+                                qty: 1
+                            });
+                            showNotification(`${state.currentProduct.name} added to cart`, 'success');
+                        }
+                        displayMenu('productDetail', state.currentProduct);
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Farmer Info\n===========\nFarm: ${state.currentProduct.farmer || 'Local Farm'}\nRating: 4.8★\nLocation: 15km away\n\n0. Back`;
+                        state.currentMenu = 'farmerInfo';
+                    } else if (input === '0') {
+                        // Go back to the category view
+                        const categoryNames = {
+                            'vegetables': 'Vegetables',
+                            'fruits': 'Fruits',
+                            'eggs': 'Eggs & Dairy'
+                        };
+                        const categoryName = categoryNames[state.currentCategory] || 'All Products';
+                        displayMenu('productCategory', categoryName);
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'cart':
+                    if (input === '1' && state.cart.length > 0) {
+                        const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                        displayMenu('checkout', total);
+                    } else if (input === '2' && state.cart.length > 0) {
+                        ussdDisplay.textContent = `Remove Item\n============\n${state.cart.map((item, i) => `${i+1}. ${item.name} x${item.qty}`).join('\n')}\n\nEnter item number to remove\n0. Back`;
+                        state.currentMenu = 'removeItem';
+                    } else if (input === '3' && state.cart.length > 0) {
+                        state.cart = [];
+                        showNotification('Cart cleared', 'success');
+                        displayMenu('cart');
+                    } else if (input === '0') {
+                        displayMenu('consumer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'removeItem':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const index = parseInt(input) - 1;
+                        if (index < state.cart.length) {
+                            const removed = state.cart.splice(index, 1);
+                            showNotification(`${removed[0].name} removed`, 'success');
+                            displayMenu('cart');
+                        }
+                    } else if (input === '0') {
+                        displayMenu('cart');
+                    }
+                    break;
+                    
+                case 'checkout':
+                    if (input === '1') {
+                        displayMenu('paymentMethods');
+                    } else if (input === '2') {
+                        displayMenu('cart');
+                    } else if (input === '0') {
+                        displayMenu('consumer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'paymentMethods':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const index = parseInt(input) - 1;
+                        if (index < state.paymentMethods.length) {
+                            const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                            state.currentPaymentMethod = state.paymentMethods[index];
+                            displayMenu('paymentConfirm', { 
+                                method: state.currentPaymentMethod, 
+                                total: total 
+                            });
+                        }
+                    } else if (input === '0') {
+                        const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                        displayMenu('checkout', total);
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'paymentConfirm':
+                    if (input === '1') {
+                        // Process payment
+                        const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                        const orderId = state.orders.length + 1;
+                        
+                        // Create order
+                        const newOrder = {
+                            id: orderId,
+                            items: state.cart.map(item => `${item.name} x${item.qty}`),
+                            total: total,
+                            date: new Date().toISOString().split('T')[0],
+                            status: 'paid',
+                            paymentMethod: state.currentPaymentMethod.name
+                        };
+                        
+                        state.orders.push(newOrder);
+                        
+                        // Update farmer balance (90% of total, 10% platform fee)
+                        state.balance += total * 0.9;
+                        
+                        // Update product stock
+                        state.cart.forEach(cartItem => {
+                            const product = state.farmerProducts.find(p => p.id === cartItem.id);
+                            if (product) {
+                                product.stock -= cartItem.qty;
+                                if (product.stock < 0) product.stock = 0;
+                            }
+                        });
+                        
+                        // Record transaction
+                        state.transactions.push({
+                            date: new Date().toISOString().split('T')[0],
+                            amount: total,
+                            type: 'sale',
+                            order: orderId
+                        });
+                        
+                        // Clear cart and show confirmation
+                        state.cart = [];
+                        showNotification(`Payment successful! Order #${orderId}`, 'success');
+                        
+                        // Return to consumer menu
+                        setTimeout(() => {
+                            state.userType = 'consumer';
+                            displayMenu('consumer');
+                        }, 2500);
+                        
+                    } else if (input === '2') {
+                        // Change payment method
+                        displayMenu('paymentMethods');
+                    } else if (input === '0') {
+                        // Cancel payment
+                        const total = state.cart.reduce((sum, item) => sum + (item.price * item.qty), 0);
+                        displayMenu('checkout', total);
+                    }
+                    break;
+                    
+                // FARMER FLOW
+                case 'farmer':
+                    if (input === '1') {
+                        displayMenu('farmerProducts');
+                    } else if (input === '2') {
+                        displayMenu('farmerOrders');
+                    } else if (input === '3') {
+                        displayMenu('salesAnalytics');
+                    } else if (input === '4') {
+                        displayMenu('paymentSettings');
+                    } else if (input === '5') {
+                        displayMenu('accountBalance');
+                    } else if (input === '0') {
+                        displayMenu('main');
+                    } else if (input === '00') {
+                        showNotification('Thank you for using AgriHealth Nexus', 'success');
+                        setTimeout(() => displayMenu('main'), 2000);
+                    }
+                    break;
+                    
+                case 'farmerProducts':
+                    if (input === '1') {
+                        ussdDisplay.textContent = `All Products\n============\n${state.farmerProducts.map((p, i) => `${i+1}. ${p.name} - R${p.price.toFixed(2)} (${p.stock} left)`).join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'viewAllProducts';
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Add Product\n===========\nEnter product name:`;
+                        state.currentMenu = 'addProductName';
+                        state.newProduct = {};
+                    } else if (input === '3') {
+                        ussdDisplay.textContent = `Edit Product\n===========\n${state.farmerProducts.map((p, i) => `${i+1}. ${p.name}`).join('\n')}\n\nEnter product number to edit\n0. Back`;
+                        state.currentMenu = 'selectProductToEdit';
+                    } else if (input === '4') {
+                        ussdDisplay.textContent = `Delete Product\n=============\n${state.farmerProducts.map((p, i) => `${i+1}. ${p.name}`).join('\n')}\n\nEnter product number to delete\n0. Back`;
+                        state.currentMenu = 'selectProductToDelete';
+                    } else if (input === '0') {
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'addProductName':
+                    state.newProduct.name = input;
+                    ussdDisplay.textContent = `Add Product\n===========\nEnter price for ${input}:`;
+                    state.currentMenu = 'addProductPrice';
+                    break;
+                    
+                case 'addProductPrice':
+                    if (input.match(/^[0-9]+(\.[0-9]{1,2})?$/)) {
+                        state.newProduct.price = parseFloat(input);
+                        ussdDisplay.textContent = `Add Product\n===========\nEnter stock quantity:`;
+                        state.currentMenu = 'addProductStock';
+                    } else {
+                        showNotification('Invalid price format', 'error');
+                    }
+                    break;
+                    
+                case 'addProductStock':
+                    if (input.match(/^[0-9]+$/)) {
+                        state.newProduct.stock = parseInt(input);
+                        ussdDisplay.textContent = `Add Product\n===========\nSelect category:\n1. Vegetables\n2. Fruits\n3. Eggs\n4. Dairy\n5. Other`;
+                        state.currentMenu = 'addProductCategory';
+                    } else {
+                        showNotification('Invalid quantity', 'error');
+                    }
+                    break;
+                    
+                case 'addProductCategory':
+                    const categories = ['vegetables', 'fruits', 'eggs', 'dairy', 'other'];
+                    if (input.match(/^[1-5]$/)) {
+                        state.newProduct.category = categories[parseInt(input) - 1];
+                        state.farmerProducts.push({
+                            id: state.farmerProducts.length + 1,
+                            ...state.newProduct
+                        });
+                        showNotification('Product added successfully!', 'success');
+                        displayMenu('farmerProducts');
+                    } else {
+                        showNotification('Invalid category', 'error');
+                    }
+                    break;
+                    
+                case 'selectProductToEdit':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const index = parseInt(input) - 1;
+                        if (index < state.farmerProducts.length) {
+                            state.currentProduct = state.farmerProducts[index];
+                            ussdDisplay.textContent = `Edit ${state.currentProduct.name}\n=============\n1. Edit Name\n2. Edit Price\n3. Edit Stock\n4. Edit Category\n0. Back`;
+                            state.currentMenu = 'editProductMenu';
+                        }
+                    } else if (input === '0') {
+                        displayMenu('farmerProducts');
+                    }
+                    break;
+                    
+                case 'editProductMenu':
+                    if (input === '1') {
+                        ussdDisplay.textContent = `Edit Name\n=========\nCurrent: ${state.currentProduct.name}\n\nEnter new name:`;
+                        state.currentMenu = 'editProductName';
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Edit Price\n==========\nCurrent: R${state.currentProduct.price.toFixed(2)}\n\nEnter new price:`;
+                        state.currentMenu = 'editProductPrice';
+                    } else if (input === '3') {
+                        ussdDisplay.textContent = `Edit Stock\n==========\nCurrent: ${state.currentProduct.stock}\n\nEnter new quantity:`;
+                        state.currentMenu = 'editProductStock';
+                    } else if (input === '4') {
+                        ussdDisplay.textContent = `Edit Category\n=============\nCurrent: ${state.currentProduct.category}\n\n1. Vegetables\n2. Fruits\n3. Eggs\n4. Dairy\n5. Other`;
+                        state.currentMenu = 'editProductCategory';
+                    } else if (input === '0') {
+                        displayMenu('selectProductToEdit');
+                    }
+                    break;
+                    
+                case 'editProductName':
+                    state.currentProduct.name = input;
+                    showNotification('Name updated', 'success');
+                    displayMenu('editProductMenu');
+                    break;
+                    
+                case 'editProductPrice':
+                    if (input.match(/^[0-9]+(\.[0-9]{1,2})?$/)) {
+                        state.currentProduct.price = parseFloat(input);
+                        showNotification('Price updated', 'success');
+                        displayMenu('editProductMenu');
+                    } else {
+                        showNotification('Invalid price format', 'error');
+                    }
+                    break;
+                    
+                case 'editProductStock':
+                    if (input.match(/^[0-9]+$/)) {
+                        state.currentProduct.stock = parseInt(input);
+                        showNotification('Stock updated', 'success');
+                        displayMenu('editProductMenu');
+                    } else {
+                        showNotification('Invalid quantity', 'error');
+                    }
+                    break;
+                    
+                case 'editProductCategory':
+                    const editCategories = ['vegetables', 'fruits', 'eggs', 'dairy', 'other'];
+                    if (input.match(/^[1-5]$/)) {
+                        state.currentProduct.category = editCategories[parseInt(input) - 1];
+                        showNotification('Category updated', 'success');
+                        displayMenu('editProductMenu');
+                    } else {
+                        showNotification('Invalid category', 'error');
+                    }
+                    break;
+                    
+                case 'selectProductToDelete':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const index = parseInt(input) - 1;
+                        if (index < state.farmerProducts.length) {
+                            const product = state.farmerProducts[index];
+                            ussdDisplay.textContent = `Confirm Delete\n=============\n${product.name}\nR${product.price.toFixed(2)}\nStock: ${product.stock}\n\n1. Confirm Delete\n0. Cancel`;
+                            state.currentMenu = 'confirmDeleteProduct';
+                            state.currentProduct = product;
+                        }
+                    } else if (input === '0') {
+                        displayMenu('farmerProducts');
+                    }
+                    break;
+                    
+                case 'confirmDeleteProduct':
+                    if (input === '1') {
+                        state.farmerProducts = state.farmerProducts.filter(p => p.id !== state.currentProduct.id);
+                        showNotification('Product deleted', 'success');
+                        displayMenu('farmerProducts');
+                    } else if (input === '0') {
+                        displayMenu('selectProductToDelete');
+                    }
+                    break;
+                    
+                case 'farmerOrders':
+                    if (input === '1') {
+                        ussdDisplay.textContent = `All Orders\n==========\n${state.orders.map(o => `${o.id}. ${o.date} - R${o.total.toFixed(2)} (${o.status})`).join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'viewAllOrders';
+                    } else if (input === '2') {
+                        const pending = state.orders.filter(o => o.status === 'paid');
+                        ussdDisplay.textContent = `Pending Orders\n=============\n${pending.length > 0 ? pending.map(o => `${o.id}. ${o.date} - R${o.total.toFixed(2)}`).join('\n') : 'No pending orders'}\n\n0. Back`;
+                        state.currentMenu = 'viewPendingOrders';
+                    } else if (input === '3') {
+                        const completed = state.orders.filter(o => o.status === 'delivered');
+                        ussdDisplay.textContent = `Completed Orders\n==============\n${completed.length > 0 ? completed.map(o => `${o.id}. ${o.date} - R${o.total.toFixed(2)}`).join('\n') : 'No completed orders'}\n\n0. Back`;
+                        state.currentMenu = 'viewCompletedOrders';
+                    } else if (input === '4') {
+                        ussdDisplay.textContent = `Update Order Status\n==================\n${state.orders.map(o => `${o.id}. ${o.date} - ${o.status}`).join('\n')}\n\nEnter order number to update\n0. Back`;
+                        state.currentMenu = 'selectOrderToUpdate';
+                    } else if (input === '0') {
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'selectOrderToUpdate':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const orderId = parseInt(input);
+                        const order = state.orders.find(o => o.id === orderId);
+                        if (order) {
+                            state.currentOrder = order;
+                            ussdDisplay.textContent = `Update Order #${order.id}\n==================\nStatus: ${order.status}\n\n1. Mark as Shipped\n2. Mark as Delivered\n0. Back`;
+                            state.currentMenu = 'updateOrderStatus';
+                        }
+                    } else if (input === '0') {
+                        displayMenu('farmerOrders');
+                    }
+                    break;
+                    
+                case 'updateOrderStatus':
+                    if (input === '1') {
+                        state.currentOrder.status = 'shipped';
+                        showNotification('Order marked as shipped', 'success');
+                        displayMenu('farmerOrders');
+                    } else if (input === '2') {
+                        state.currentOrder.status = 'delivered';
+                        showNotification('Order marked as delivered', 'success');
+                        displayMenu('farmerOrders');
+                    } else if (input === '0') {
+                        displayMenu('selectOrderToUpdate');
+                    }
+                    break;
+                    
+                case 'salesAnalytics':
+                    if (input === '1') {
+                        const monthlySales = {};
+                        state.orders.forEach(order => {
+                            const month = order.date.substring(0, 7); // YYYY-MM
+                            monthlySales[month] = (monthlySales[month] || 0) + order.total;
+                        });
+                        
+                        ussdDisplay.textContent = `Sales Report\n============\n${Object.entries(monthlySales)
+                            .map(([month, total]) => `${month}: R${total.toFixed(2)}`)
+                            .join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'salesReport';
+                    } else if (input === '2') {
+                        const productSales = {};
+                        state.orders.forEach(order => {
+                            order.items.forEach(item => {
+                                const productName = item.split(' x')[0];
+                                productSales[productName] = (productSales[productName] || 0) + 1;
+                            });
+                        });
+                        
+                        const sortedProducts = Object.entries(productSales)
+                            .sort((a, b) => b[1] - a[1])
+                            .slice(0, 5);
+                            
+                        ussdDisplay.textContent = `Popular Items\n=============\n${sortedProducts
+                            .map(([name, count]) => `${name}: ${count} sales`)
+                            .join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'popularItems';
+                    } else if (input === '0') {
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'paymentSettings':
+                    if (input === '1') {
+                        ussdDisplay.textContent = `Payment Methods\n==============\n${state.paymentMethods.map((m, i) => `${i+1}. ${m.name}${m.bank ? ` (${m.bank})` : ''}: ${m.number}`).join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'viewPaymentMethods';
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Add Payment Method\n=================\n1. Mobile Money\n2. Bank Account\n0. Back`;
+                        state.currentMenu = 'addPaymentMethodType';
+                    } else if (input === '3') {
+                        if (state.paymentMethods.length > 0) {
+                            ussdDisplay.textContent = `Remove Payment\n=============\n${state.paymentMethods.map((m, i) => `${i+1}. ${m.name}: ${m.number}`).join('\n')}\n\nEnter number to remove\n0. Back`;
+                            state.currentMenu = 'removePaymentMethod';
+                        } else {
+                            showNotification('No payment methods', 'error');
+                        }
+                    } else if (input === '0') {
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'addPaymentMethodType':
+                    if (input === '1') {
+                        ussdDisplay.textContent = `Add Mobile Money\n================\nEnter phone number:`;
+                        state.currentMenu = 'addMobileMoney';
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Add Bank Account\n===============\nEnter bank name:`;
+                        state.currentMenu = 'addBankName';
+                    } else if (input === '0') {
+                        displayMenu('paymentSettings');
+                    }
+                    break;
+                    
+                case 'addMobileMoney':
+                    if (input.match(/^[0-9]{10}$/)) {
+                        state.paymentMethods.push({
+                            id: state.paymentMethods.length + 1,
+                            name: 'Mobile Money',
+                            number: input
+                        });
+                        showNotification('Mobile Money added', 'success');
+                        displayMenu('paymentSettings');
+                    } else {
+                        showNotification('Invalid phone number', 'error');
+                    }
+                    break;
+                    
+                case 'addBankName':
+                    state.newPayment = { bank: input };
+                    ussdDisplay.textContent = `Add Bank Account\n===============\nEnter account number:`;
+                    state.currentMenu = 'addBankAccount';
+                    break;
+                    
+                case 'addBankAccount':
+                    if (input.match(/^[0-9]{9,18}$/)) {
+                        state.newPayment.number = input;
+                        state.paymentMethods.push({
+                            id: state.paymentMethods.length + 1,
+                            name: 'Bank Transfer',
+                            number: input,
+                            bank: state.newPayment.bank
+                        });
+                        showNotification('Bank account added', 'success');
+                        displayMenu('paymentSettings');
+                    } else {
+                        showNotification('Invalid account number', 'error');
+                    }
+                    break;
+                    
+                case 'removePaymentMethod':
+                    if (input.match(/^[1-9][0-9]*$/)) {
+                        const index = parseInt(input) - 1;
+                        if (index < state.paymentMethods.length) {
+                            const removed = state.paymentMethods.splice(index, 1);
+                            showNotification(`${removed[0].name} removed`, 'success');
+                            displayMenu('paymentSettings');
+                        }
+                    } else if (input === '0') {
+                        displayMenu('paymentSettings');
+                    }
+                    break;
+                    
+                case 'accountBalance':
+                    if (input === '1') {
+                        if (state.balance > 0) {
+                            ussdDisplay.textContent = `Request Payout\n=============\nBalance: R${state.balance.toFixed(2)}\n\n1. Confirm Payout\n0. Cancel`;
+                            state.currentMenu = 'confirmPayout';
+                        } else {
+                            showNotification('No funds available', 'error');
+                        }
+                    } else if (input === '2') {
+                        ussdDisplay.textContent = `Transaction History\n==================\n${state.transactions
+                            .map(t => `${t.date}: ${t.type === 'sale' ? '+' : ''}R${t.amount.toFixed(2)} ${t.type === 'sale' ? `(Order ${t.order})` : `(${t.reference})`}`)
+                            .join('\n')}\n\n0. Back`;
+                        state.currentMenu = 'transactionHistory';
+                    } else if (input === '0') {
+                        displayMenu('farmer');
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                case 'confirmPayout':
+                    if (input === '1') {
+                        const payoutAmount = state.balance;
+                        state.balance = 0;
+                        
+                        // Record payout transaction
+                        state.transactions.push({
+                            date: new Date().toISOString().split('T')[0],
+                            amount: -payoutAmount,
+                            type: 'payout',
+                            reference: 'PAY' + Math.floor(Math.random() * 100000)
+                        });
+                        
+                        showNotification(`Payout of R${payoutAmount.toFixed(2)} initiated`, 'success');
+                        setTimeout(() => displayMenu('accountBalance'), 2500);
+                    } else if (input === '0') {
+                        displayMenu('accountBalance');
+                    }
+                    break;
+                    
+                // Common navigation cases
+                case 'viewAllProducts':
+                case 'viewAllOrders':
+                case 'viewPendingOrders':
+                case 'viewCompletedOrders':
+                case 'salesReport':
+                case 'popularItems':
+                case 'viewPaymentMethods':
+                case 'transactionHistory':
+                case 'orderHistory':
+                case 'farmerInfo':
+                    if (input === '0') {
+                        // Go back to the previous menu based on context
+                        if (state.currentMenu === 'viewAllProducts') {
+                            displayMenu('farmerProducts');
+                        } else if (state.currentMenu === 'viewAllOrders' || 
+                                   state.currentMenu === 'viewPendingOrders' || 
+                                   state.currentMenu === 'viewCompletedOrders') {
+                            displayMenu('farmerOrders');
+                        } else if (state.currentMenu === 'salesReport' || 
+                                  state.currentMenu === 'popularItems') {
+                            displayMenu('salesAnalytics');
+                        } else if (state.currentMenu === 'viewPaymentMethods') {
+                            displayMenu('paymentSettings');
+                        } else if (state.currentMenu === 'transactionHistory') {
+                            displayMenu('accountBalance');
+                        } else if (state.currentMenu === 'orderHistory') {
+                            displayMenu('consumer');
+                        } else if (state.currentMenu === 'farmerInfo') {
+                            displayMenu('productDetail', state.currentProduct);
+                        }
+                    } else if (input === '00') {
+                        displayMenu('main');
+                    }
+                    break;
+                    
+                default:
+                    showNotification('Invalid option', 'error');
+            }
+        }
+
+        // Keypad input handler
+        function pressKey(key) {
+            const input = ussdInput;
+            if (key === '#') {
+                // Process input
+                processInput(input.value);
+            } else if (key === '*') {
+                // Clear input
+                input.value = '';
+            } else {
+                // Append key to input
+                input.value += key;
+            }
+            input.focus();
+        }
+
+        // Handle send button click
+        sendBtn.addEventListener('click', () => {
+            processInput(ussdInput.value);
+        });
+
+        // Handle Enter key in input
+        ussdInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                processInput(ussdInput.value);
+            }
+        });
+
+        // Initialize the USSD interface
+        initUSSD();
+
+        document.getElementById('exitUssdServiceBtn').onclick = function() {
+            window.location.href = 'index.html';
+        };
+    </script>
+</body>
+</html>
